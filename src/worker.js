@@ -43,8 +43,7 @@ async function verifyAccessJwt(request, env) {
       !env.POLICY_AUD && "POLICY_AUD",
     ].filter(Boolean);
     return new Response(
-      `Configuration Error: missing required secret(s): ${missing.join(", ")}.\n` +
-        `Run:\n${missing.map((s) => `  wrangler secret put ${s}`).join("\n")}`,
+      `Configuration Error: missing required secret(s): ${missing.join(", ")}.`,
       { status: 500, headers: { "Content-Type": "text/plain" } }
     );
   }

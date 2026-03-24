@@ -807,7 +807,10 @@ function App() {
 
   useEffect(() => {
     fetch("/config")
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
       .then(d => {
         if (!d.accountId) throw new Error("CF_ACCOUNT_ID secret not set — run: wrangler secret put CF_ACCOUNT_ID");
         setAccountId(d.accountId);
@@ -821,11 +824,7 @@ function App() {
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, maxWidth: 420, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontWeight: 700, fontSize: 16 }}>Configuration Error</div>
-            <div className="error-bar" style={{ borderRadius: "var(--radius)" }}><Icon name="warning" size={14} />{configError}</div>
-            <div style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6, fontFamily: "var(--mono)" }}>
-              wrangler secret put CF_API_KEY<br />
-              wrangler secret put CF_ACCOUNT_ID
-            </div>
+            <pre style={{ background: "var(--bg)", border: "1px solid var(--red)", borderRadius: "var(--radius)", color: "var(--red)", fontFamily: "var(--mono)", fontSize: 12, padding: "10px 12px", whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{configError}</pre>
           </div>
         </div>
       );
