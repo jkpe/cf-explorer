@@ -758,7 +758,7 @@ function D1Explorer({ accountId, initialDbUuid, initialTable, onNavigate }) {
   };
 
   const selectDb = async (db, autoTable = null) => {
-    setSelectedDb(db); setResults(null); setSidebarOpen(false);
+    setSelectedDb(db); setResults(null);
     setQuery(autoTable ? `SELECT * FROM "${autoTable}" LIMIT 100;` : "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;");
     onNavigate?.(autoTable ? [db.uuid, encodeURIComponent(autoTable)] : [db.uuid]);
     try {
@@ -799,7 +799,7 @@ function D1Explorer({ accountId, initialDbUuid, initialTable, onNavigate }) {
     setLoading(false);
   };
 
-  const tableQuery = (t) => { setQuery(`SELECT * FROM "${t}" LIMIT 100;`); runQuery(`SELECT * FROM "${t}" LIMIT 100;`); onNavigate?.([selectedDb.uuid, encodeURIComponent(t)]); };
+  const tableQuery = (t) => { setQuery(`SELECT * FROM "${t}" LIMIT 100;`); runQuery(`SELECT * FROM "${t}" LIMIT 100;`); onNavigate?.([selectedDb.uuid, encodeURIComponent(t)]); setSidebarOpen(false); };
 
   return (
     <div className="explorer-layout">

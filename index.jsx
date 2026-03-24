@@ -716,7 +716,7 @@ setLoading(false);
 };
 
 const selectDb = async (db) => {
-setSelectedDb(db); setResults(null); setSidebarOpen(false);
+setSelectedDb(db); setResults(null);
 setQuery(“SELECT name FROM sqlite_master WHERE type=‘table’ ORDER BY name;”);
 try {
 const d = await cfFetch(accountId, apiKey, `/accounts/${accountId}/d1/database/${db.uuid}/query`, {
@@ -742,7 +742,7 @@ toast(`✓ ${res?.results?.length ?? 0} rows · ${res?.meta?.duration?.toFixed(1
 setLoading(false);
 };
 
-const tableQuery = (t) => { setQuery(`SELECT * FROM "${t}" LIMIT 100;`); };
+const tableQuery = (t) => { setQuery(`SELECT * FROM "${t}" LIMIT 100;`); setSidebarOpen(false); };
 
 return (
 <div className="explorer-layout">
