@@ -4,6 +4,8 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-03-24",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
 
   // DEV_BYPASS skips CF Access JWT verification locally.
   // Remove or set to any other value before deploying to production.
