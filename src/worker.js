@@ -37,6 +37,18 @@ export default {
 async function verifyAccessJwt(request, env) {
   if (env.DEV_BYPASS === "true") return null;
 
+  if (!env.TEAM_DOMAIN || !env.POLICY_AUD) {
+    const missing = [
+      !env.TEAM_DOMAIN && "TEAM_DOMAIN",
+      !env.POLICY_AUD && "POLICY_AUD",
+    ].filter(Boolean);
+    return new Response(
+      `Configuration Error: missing required secret(s): ${missing.join(", ")}.\n` +
+        `Run:\n${missing.map((s) => `  wrangler secret put ${s}`).join("\n")}`,
+      { status: 500, headers: { "Content-Type": "text/plain" } }
+    );
+  }
+
   const token = request.headers.get("cf-access-jwt-assertion");
   if (!token) {
     return new Response("Missing Cf-Access-Jwt-Assertion header", { status: 403 });

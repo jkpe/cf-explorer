@@ -2,6 +2,10 @@
 
 A Cloudflare Worker that serves a browser UI for exploring [Workers KV](https://developers.cloudflare.com/kv/) namespaces and [D1](https://developers.cloudflare.com/d1/) databases in your Cloudflare account. Credentials are stored as Worker secrets. Access is gated by Cloudflare Access & JWT verification.
 
+## Read-only only
+
+For sanity :-), this tool only supports read-only operations.
+
 ## Setup
 
 ### 1. Create a read-only API token
