@@ -552,7 +552,7 @@ function D1Table({ rows }) {
 }
 
 // ── KV Explorer ───────────────────────────────────────────────────────
-function KVExplorer({ accountId }) {
+function KVExplorer({ accountId, initialNsId, initialKeyName, onNavigate }) {
   const [namespaces, setNamespaces] = useState([]);
   const [selectedNs, setSelectedNs] = useState(null);
   const [keys, setKeys] = useState([]);
@@ -574,7 +574,32 @@ function KVExplorer({ accountId }) {
     setLoading(true); setError("");
     try {
       const d = await cfFetch(`/accounts/${accountId}/storage/kv/namespaces?per_page=100`);
-      setNamespaces(d.result || []);
+      const nsList = d.result || [];
+      setNamespaces(nsList);
+      if (initialNsId) {
+        const ns = nsList.find(n => n.id === initialNsId);
+        if (ns) {
+          setSelectedNs(ns);
+          const q = new URLSearchParams({ limit: "50" });
+          const kd = await cfFetch(`/accounts/${accountId}/storage/kv/namespaces/${ns.id}/keys?${q}`);
+          const keyList = kd.result || [];
+          setKeys(keyList);
+          setCursor(kd.result_info?.cursor || null);
+          setPrevCursors([]);
+          if (initialKeyName) {
+            const k = keyList.find(k => k.name === initialKeyName);
+            if (k) {
+              setSelectedKey(k); setValuePaneOpen(true); setLoadingVal(true);
+              try {
+                const res = await fetch(`/api/accounts/${accountId}/storage/kv/namespaces/${ns.id}/values/${encodeURIComponent(k.name)}`);
+                const text = await res.text();
+                try { setValue(JSON.stringify(JSON.parse(text), null, 2)); } catch { setValue(text); }
+              } catch (e) { setValue(`Error: ${e.message}`); }
+              setLoadingVal(false);
+            }
+          }
+        }
+      }
     } catch (e) { setError(e.message); }
     setLoading(false);
   };
@@ -594,10 +619,12 @@ function KVExplorer({ accountId }) {
   const selectNs = (ns) => {
     setSelectedNs(ns); setSelectedKey(null); setValuePaneOpen(false);
     setPrevCursors([]); loadKeys(ns, null, []); setSidebarOpen(false);
+    onNavigate?.([ns.id]);
   };
 
   const loadValue = async (key) => {
     setSelectedKey(key); setValuePaneOpen(true); setLoadingVal(true);
+    onNavigate?.([selectedNs.id, encodeURIComponent(key.name)]);
     try {
       const res = await fetch(
         `/api/accounts/${accountId}/storage/kv/namespaces/${selectedNs.id}/values/${encodeURIComponent(key.name)}`
@@ -621,7 +648,7 @@ function KVExplorer({ accountId }) {
         </div>
         <div className="sidebar-list">
           {namespaces.length === 0 && !loading && <div className="sidebar-empty">No namespaces</div>}
-          {namespaces.map(ns => (
+          {[...namespaces].sort((a, b) => a.title.localeCompare(b.title)).map(ns => (
             <div key={ns.id} className={`sidebar-item ${selectedNs?.id === ns.id ? "active-blue" : ""}`} onClick={() => selectNs(ns)}>
               <Icon name="kv" size={13} /> {ns.title}
             </div>
@@ -676,7 +703,7 @@ function KVExplorer({ accountId }) {
 
           <div className={`value-pane ${valuePaneOpen ? "open" : ""}`}>
             <div className="main-header">
-              <button className="btn-icon" onClick={() => setValuePaneOpen(false)}><Icon name="close" size={16} /></button>
+              <button className="btn-icon" onClick={() => { setValuePaneOpen(false); onNavigate?.([selectedNs.id]); }}><Icon name="close" size={16} /></button>
               <span className="main-title" style={{ fontFamily: "var(--mono)", fontSize: 12 }}>{selectedKey?.name}</span>
               <button className="btn-icon" onClick={copyValue}><Icon name="copy" size={15} /></button>
             </div>
@@ -704,7 +731,7 @@ function KVExplorer({ accountId }) {
 }
 
 // ── D1 Explorer ───────────────────────────────────────────────────────
-function D1Explorer({ accountId }) {
+function D1Explorer({ accountId, initialDbUuid, initialTable, onNavigate }) {
   const [databases, setDatabases] = useState([]);
   const [selectedDb, setSelectedDb] = useState(null);
   const [tables, setTables] = useState([]);
@@ -720,14 +747,20 @@ function D1Explorer({ accountId }) {
     setLoading(true); setError("");
     try {
       const d = await cfFetch(`/accounts/${accountId}/d1/database?per_page=100`);
-      setDatabases(d.result || []);
+      const dbList = d.result || [];
+      setDatabases(dbList);
+      if (initialDbUuid) {
+        const db = dbList.find(d => d.uuid === initialDbUuid);
+        if (db) selectDb(db, initialTable || null);
+      }
     } catch (e) { setError(e.message); }
     setLoading(false);
   };
 
-  const selectDb = async (db) => {
+  const selectDb = async (db, autoTable = null) => {
     setSelectedDb(db); setResults(null); setSidebarOpen(false);
-    setQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;");
+    setQuery(autoTable ? `SELECT * FROM "${autoTable}" LIMIT 100;` : "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;");
+    onNavigate?.(autoTable ? [db.uuid, encodeURIComponent(autoTable)] : [db.uuid]);
     try {
       const d = await cfFetch(`/accounts/${accountId}/d1/database/${db.uuid}/query`, {
         method: "POST",
@@ -736,14 +769,28 @@ function D1Explorer({ accountId }) {
       const rows = d.result?.[0]?.results || [];
       setTables(rows.map(r => r.name));
     } catch (e) { /* ignore */ }
+    if (autoTable) {
+      setLoading(true); setError("");
+      try {
+        const sql = `SELECT * FROM "${autoTable}" LIMIT 100;`;
+        const d = await cfFetch(`/accounts/${accountId}/d1/database/${db.uuid}/query`, {
+          method: "POST", body: JSON.stringify({ sql })
+        });
+        const res = d.result?.[0];
+        setResults(res?.results || []);
+        toast(`✓ ${res?.results?.length ?? 0} rows · ${res?.meta?.duration?.toFixed(1) ?? "?"}ms`);
+      } catch (e) { setError(e.message); }
+      setLoading(false);
+    }
   };
 
-  const runQuery = async () => {
-    if (!selectedDb || !query.trim()) return;
+  const runQuery = async (sql) => {
+    const q = sql ?? query;
+    if (!selectedDb || !q.trim()) return;
     setLoading(true); setError(""); setResults(null);
     try {
       const d = await cfFetch(`/accounts/${accountId}/d1/database/${selectedDb.uuid}/query`, {
-        method: "POST", body: JSON.stringify({ sql: query })
+        method: "POST", body: JSON.stringify({ sql: q })
       });
       const res = d.result?.[0];
       setResults(res?.results || []);
@@ -752,7 +799,7 @@ function D1Explorer({ accountId }) {
     setLoading(false);
   };
 
-  const tableQuery = (t) => { setQuery(`SELECT * FROM "${t}" LIMIT 100;`); };
+  const tableQuery = (t) => { setQuery(`SELECT * FROM "${t}" LIMIT 100;`); runQuery(`SELECT * FROM "${t}" LIMIT 100;`); onNavigate?.([selectedDb.uuid, encodeURIComponent(t)]); };
 
   return (
     <div className="explorer-layout">
@@ -764,7 +811,7 @@ function D1Explorer({ accountId }) {
           <button className="btn-icon" onClick={loadDatabases}><Icon name="refresh" size={14} /></button>
         </div>
         <div className="sidebar-list">
-          {databases.map(db => (
+          {[...databases].sort((a, b) => a.name.localeCompare(b.name)).map(db => (
             <div key={db.uuid} className={`sidebar-item ${selectedDb?.uuid === db.uuid ? "active" : ""}`} onClick={() => selectDb(db)}>
               <Icon name="d1" size={13} /> {db.name}
             </div>
@@ -821,10 +868,16 @@ function D1Explorer({ accountId }) {
 
 // ── App ───────────────────────────────────────────────────────────────
 function App() {
-  const [tab, setTab] = useState("kv");
+  const [hashParts] = useState(() => window.location.hash.slice(1).split('/').filter(Boolean));
+  const [tab, setTab] = useState(() => hashParts[0] === 'd1' ? 'd1' : 'kv');
   const [accountId, setAccountId] = useState(null);
   const [configError, setConfigError] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem("cf-explorer-theme") || "dark");
+
+  const changeTab = (newTab) => {
+    setTab(newTab);
+    history.replaceState(null, '', '#' + newTab);
+  };
 
   const toggleTheme = () => setTheme((t) => {
     const next = t === "dark" ? "light" : "dark";
@@ -862,19 +915,25 @@ function App() {
     return (
       <>
         <div className="tabs">
-          <button className={`tab tab-kv ${tab === "kv" ? "active" : ""}`} onClick={() => setTab("kv")}>
+          <button className={`tab tab-kv ${tab === "kv" ? "active" : ""}`} onClick={() => changeTab("kv")}>
             <Icon name="kv" size={14} /> KV
           </button>
-          <button className={`tab ${tab === "d1" ? "active" : ""}`} onClick={() => setTab("d1")}>
+          <button className={`tab ${tab === "d1" ? "active" : ""}`} onClick={() => changeTab("d1")}>
             <Icon name="d1" size={14} /> D1
           </button>
         </div>
         <div className="content">
           <div className={`panel ${tab === "kv" ? "active" : ""}`}>
-            <KVExplorer accountId={accountId} />
+            <KVExplorer accountId={accountId}
+              initialNsId={hashParts[0] === 'kv' ? hashParts[1] : undefined}
+              initialKeyName={hashParts[0] === 'kv' ? (hashParts[2] ? decodeURIComponent(hashParts[2]) : undefined) : undefined}
+              onNavigate={(segs) => history.replaceState(null, '', '#' + ['kv', ...segs].join('/'))} />
           </div>
           <div className={`panel ${tab === "d1" ? "active" : ""}`}>
-            <D1Explorer accountId={accountId} />
+            <D1Explorer accountId={accountId}
+              initialDbUuid={hashParts[0] === 'd1' ? hashParts[1] : undefined}
+              initialTable={hashParts[0] === 'd1' ? (hashParts[2] ? decodeURIComponent(hashParts[2]) : undefined) : undefined}
+              onNavigate={(segs) => history.replaceState(null, '', '#' + ['d1', ...segs].join('/'))} />
           </div>
         </div>
       </>

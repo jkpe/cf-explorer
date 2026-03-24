@@ -592,7 +592,7 @@ setLoadingVal(false);
 
 const copyValue = () => { navigator.clipboard.writeText(value); toast(“Copied!”); };
 
-const filteredNs = namespaces.filter(n => n.title.toLowerCase().includes(search.toLowerCase()));
+const filteredNs = namespaces.filter(n => n.title.toLowerCase().includes(search.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title));
 
 return (
 <div className="explorer-layout">
@@ -606,8 +606,8 @@ return (
       <button className="btn-icon" onClick={loadNamespaces}><Icon name="refresh" size={14} /></button>
     </div>
     <div className="sidebar-list">
-      {namespaces.length === 0 && !loading && <div className="sidebar-empty">No namespaces</div>}
-      {namespaces.map(ns => (
+      {filteredNs.length === 0 && !loading && <div className="sidebar-empty">No namespaces</div>}
+      {filteredNs.map(ns => (
         <div key={ns.id} className={`sidebar-item ${selectedNs?.id === ns.id ? "active-blue" : ""}`} onClick={() => selectNs(ns)}>
           <Icon name="kv" size={13} /> {ns.title}
         </div>
@@ -755,7 +755,7 @@ return (
       <button className="btn-icon" onClick={loadDatabases}><Icon name="refresh" size={14} /></button>
     </div>
     <div className="sidebar-list">
-      {databases.map(db => (
+      {[...databases].sort((a, b) => a.name.localeCompare(b.name)).map(db => (
         <div key={db.uuid} className={`sidebar-item ${selectedDb?.uuid === db.uuid ? "active" : ""}`} onClick={() => selectDb(db)}>
           <Icon name="d1" size={13} /> {db.name}
         </div>
