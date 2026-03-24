@@ -1,0 +1,16 @@
+{
+  "name": "cf-explorer",
+  "main": "src/worker.js",
+  "compatibility_date": "2024-12-01",
+
+  // DEV_BYPASS skips CF Access JWT verification locally.
+  // Remove or set to any other value before deploying to production.
+  "vars": {
+    "DEV_BYPASS": "true"
+  },
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  }
+}
