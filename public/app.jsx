@@ -171,6 +171,33 @@ body {
 }
 .logo-dot { color: var(--accent); }
 
+.header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.header-credits {
+  font-size: 12px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.header-credits a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.header-credits a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* ── Tab bar ── */
 .tabs {
   display: flex;
@@ -863,9 +890,18 @@ function App() {
             <Icon name={tab === "kv" ? "kv" : "d1"} size={18} />
             CF<span className="logo-dot">.</span>Explorer
           </div>
-          <button className="btn-icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} style={{ marginLeft: "auto" }}>
-            <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
-          </button>
+          <div className="header-right">
+            <div className="header-credits">
+              <span>Made by</span>
+              <a href="https://www.jackpearce.co.uk/" target="_blank" rel="noopener noreferrer">Jack Pearce</a>
+              <span aria-hidden="true">♥</span>
+              <span style={{ color: "var(--text-muted)" }}>·</span>
+              <a href="https://github.com/jkpe/cf-explorer" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </div>
+            <button className="btn-icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+              <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
+            </button>
+          </div>
         </div>
         {renderBody()}
         <Toasts />
