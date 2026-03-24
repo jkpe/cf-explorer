@@ -43,10 +43,14 @@ npm run deploy
 
 ## How it works
 
-- The Worker serves `public/` as a static site
-- On startup, the app fetches `/config` to get the account ID — the API key is never exposed to the browser
-- All Cloudflare API calls go through `/api/*`, where the Worker injects the `CF_API_KEY` secret server-side
-- Every request is authenticated by verifying the `Cf-Access-Jwt-Assertion` header set by Cloudflare Access
+- The Worker has three routes:
+  - `GET /config` returns `{ accountId }` from `CF_ACCOUNT_ID`
+  - `/api/*` proxies to `https://api.cloudflare.com/client/v4/*`
+  - all other paths are served as static assets via the `ASSETS` binding
+- API credentials stay server-side: the browser never receives `CF_API_KEY`; the Worker injects it as a Bearer token when proxying `/api/*` requests
+- Cloudflare Access JWT validation runs on every request using `TEAM_DOMAIN` + `POLICY_AUD` (`Cf-Access-Jwt-Assertion` header)
+- Local development can bypass JWT verification when `DEV_BYPASS=true`
+- The frontend keeps navigation state in the URL hash (`#kv/...` / `#d1/...`) so links are shareable and restorable on refresh
 
 ## Features
 
