@@ -52,3 +52,19 @@ npm run deploy
 
 - **[Workers KV](https://developers.cloudflare.com/kv/) Explorer** — browse namespaces, list/search keys, view values with JSON formatting
 - **[D1](https://developers.cloudflare.com/d1/) Explorer** — browse databases, run SQL queries, sortable results table
+- **URL hash deep links** — share or bookmark the exact KV/D1 view you are on (tab, selected namespace/database, selected key/table)
+
+## URL hash navigation
+
+The app keeps your current view in the URL hash so refresh/share/bookmark works.
+
+Examples:
+
+- `#kv` — open the KV tab
+- `#kv/<namespace-id>` — open a specific KV namespace
+- `#kv/<namespace-id>/<url-encoded-key-name>` — open a specific KV key value
+- `#d1` — open the D1 tab
+- `#d1/<database-uuid>` — open a specific D1 database
+- `#d1/<database-uuid>/<url-encoded-table-name>` — open a specific table query (`SELECT * FROM "<table>" LIMIT 100;`)
+
+Note: key/table names in the URL are URL-encoded.
